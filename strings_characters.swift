@@ -110,5 +110,94 @@ let precomposed: Character = "\u{D55C}"
  greeting[index]
  // a
 
- 
+ greeting[greeting.endIndex] // ошибка
+ greeting.index(after: endIndex) // ошибка
+
+ for index in greeting.indices {
+ print("\(greeting[index]) ", terminator: " ")
+ }
+// Выведет "G u t e n T a g !" indices создает range всех индексов
+
+var welcome = "hello"
+ welcome.insert("!", at: welcome.endIndex)
+// welcome теперь равен "hello!"
+welcome.insert(contentsOf:" there", at: welcome.index(before: welcome.endIndex))
+// welcome теперь равен "hello there!”
+
+//Подстроки
+
+let greeting = "Hello, world!"
+let index = greeting.firstIndex(of: ",") ?? greeting.endIndex
+let beginning = greeting[..<index]
+// beginning is "Hello"
+// Конвертируем в строку для хранения более продолжительное время.
+let newString = String(beginning)
+
+let quotation = "Мы с тобой похожи"
+let sameQuotation = "Мы с тобой похожи"
+if quotation == sameQuotation {
+  print("Эти строки считаются равными")
+}
+// Выведет "Эти строки считаются равными"
+
+
+// "Voulez-vous un café?" используем LATIN SMALL LETTER E WITH ACUTE
+let eAcuteQuestion = "Voulez-vous un caf\u{E9}?"
+// "Voulez-vous un café?" используем LATIN SMALL LETTER E и COMBINING ACUTE ACCENT
+let combinedEAcuteQuestion = "Voulez-vous un caf\u{65}\u{301}?"
+if eAcuteQuestion == combinedEAcuteQuestion {
+  print("Эти строки считаются равными")
+}
+// Выведет "Эти строки считаются равными"
+
+let latinCapitalLetterA: Character = "\u{41}"
+let cyrillicCapitalLetterA: Character = "\u{0410}"
+if latinCapitalLetterA != cyrillicCapitalLetterA {
+  print("Эти строки считаются не равными")
+}
+// Выведет "Эти строки считаются не равными"
+
+var act1SceneCount = 0
+for scene in romeoAndJuliet {
+  if scene.hasPrefix("Act 1 ") {
+    act1SceneCount += 1
+  }
+}
+ print("Всего \(act1SceneCount) сцен в Акте 1")
+ // Выведет "Всего 5 сцен в Акте 1"  если видет упоминание Act 1 в самом начале
+
+ var mansionCount = 0
+ var cellCount = 0
+ for scene in romeoAndJuliet {
+   if scene.hasSuffix("Capulet's mansion") {
+     mansionCount += 1
+   } else if scene.hasSuffix("Friar Lawrence's cell") {
+     cellCount += 1
+   }
+ }
+ print("\(mansionCount) сцен в особняке; \(cellCount) тюремные сцены")
+ // выводит "6 сцен в особняке; 2 тюремные сцены" если видет упоминание в самом конце
+
+let dogString = "Dog‼"
+
+for codeUnit in dogString.utf8 {
+    print("\(codeUnit) ", terminator: " ")
+}
+print("")
+ // 68 111 103 226 128 188 240 159 144 182
+
+ for codeUnit in dogString.utf16 {
+    print("\(codeUnit) ", terminator: " ")
+}
+print("")
+ // Выведет "68 111 103 8252 55357 56374 "
+
+ for scalar in dogString.unicodeScalars {
+    print("\(scalar.value) ", terminator: " ")
+}
+print("")
+// Выведет "68 111 103 8252 128054 "
+
+
+
 
