@@ -344,21 +344,228 @@ if anonymousCreature == nil {
  
 // Выведет "Неизвестное животное не может быть инициализировано"
 
+//Проваливающиеся инициализаторы для перечислений
+
+enum TemperatureUnit {
+    case kelvin, celsius, fahrenheit
+    init?(symbol: Character) {
+        switch symbol {
+        case "K":
+            self = .kelvin
+        case "C":
+            self = .celsius
+        case "F":
+            self = .fahrenheit
+        default:
+            return nil
+        }
+    }
+}
+
+
+let fahrenheitUnit = TemperatureUnit(symbol: "F")
+if fahrenheitUnit != nil {
+  print("Эта единица измерения температуры определена, а значит наша инициализация прошла успешно!")
+}
+ 
+// Выведет "Эта единица измерения температуры определена, а значит наша инициализация прошла успешно!"
+ 
+let unknownUnit = TemperatureUnit(symbol: "X")
+if  unknownUnit == nil {
+  print("Единица измерения температуры не определена, таким образом мы зафейлили инициализацию")
+}
+ 
+// Выведет "Единица измерения температуры не определена, таким образом мы зафейлили инициализацию"
+
+
+
+//Проваливающиеся инициализаторы для перечислений с начальными значениями
+
+//Перечисления с начальными значениями по умолчанию получают проваливающийся инициализатор init?(rawValue:), 
+//который принимает параметр rawValue подходящего типа и выбирает соответствующий член перечисления,
+//если он находит подходящий, или срабатывает сбой инициализации, если существующее значение не находит совпадения среди членов перечисления.
+
+enum TemperatureUnit: Character {
+  case kelvin = "K", celsius = "C", fahrenheit = "F"
+}
+ 
+let fahrenheitUnit = TemperatureUnit(rawValue: "F")
+if fahrenheitUnit != nil {
+  print("Эта единица измерения температура определена, а значит наша инициализация прошла успешно!")
+}
+ 
+// Выведет "Эта единица измерения температура определена, а значит наша инициализация прошла успешно!"
+ 
+let unknownUnit = TemperatureUnit(rawValue: "X")
+if  unknownUnit == nil {
+  print("Единица измерения температуры не определена, таким образом мы зафейлили инициализацию.")
+}
+ 
+// Выведет "Единица измерения температуры не определена, таким образом мы зафейлили инициализацию."
 
 
 
 
+//Распространение проваливающегося инициализатора
+
+class Product {
+    let name: String
+    init?(name: String) {
+        if name.isEmpty { return nil }
+        self.name = name
+    }
+}
+ 
+class CartItem: Product {
+    let quantity: Int
+    init?(name: String, quantity: Int) {
+        if quantity < 1 { return nil }
+        self.quantity = quantity
+        super.init(name: name)
+    }
+}
+
+
+//Если вы создаете экземпляр CartItem с name не равной пустой строке и quantity равному 1 или более, то инициализация проходит успешно:
+
+
+if let twoSocks = CartItem(name: "sock", quantity: 2) {
+    print("Item: \(twoSocks.name), quantity: \(twoSocks.quantity)")
+}
+// Выведет "Item: sock, quantity: 2"
+
+//Если вы попытаетесь создать экземпляр CartItem с quantity со значением 0, то инициализация провалится:
+
+if let zeroShirts = CartItem(name: "shirt", quantity: 0) {
+    print("Item: \(zeroShirts.name), quantity: \(zeroShirts.quantity)")
+} else {
+    print("Невозможно инициализировать ноль футболок")
+}
+// Выведет "Невозможно инициализировать ноль футболок"
+
+//Аналогично, если вы попытаетесь создать экземпляр CartItem с name равным пустой строке, то инициализатор суперкласса Product вызовет неудачу инициализации:
+if let oneUnnamed = CartItem(name: "", quantity: 1) {
+    print("Item: \(oneUnnamed.name), quantity: \(oneUnnamed.quantity)")
+} else {
+    print("Невозможно инициализировать товар без имени")
+}
+// Выведет "Невозможно инициализировать товар без имени"
 
 
 
+//Переопределение проваливающегося инициализатора
+
+//Вы можете переопределить проваливающийся инициализатор непроваливающимся инициализатором, но не наоборот.
+
+class Document {
+    var name: String?
+    //этот инициализатор создает документ со значением nil свойства name
+    init(){}
+    //этот инициализатор создает документ с не пустым свойством name
+    init?(name: String) {
+      if name.isEmpty { return nil }
+      self.name = name
+    }
+}
+
+class AutomaticallyNamedDocument: Document {
+    override init() {
+        super.init()
+        self.name = "[Untitled]"
+    }
+    override init(name: String) {
+        super.init()
+        if name.isEmpty {
+            self.name = "[Untitled]"
+        } else {
+            self.name = name
+        }
+    }
+}
+
+//AutomaticallyNamedDocument переопределяет проваливающийся инициализатор init?(name:) суперкласса непроваливающимся инициализатором init(name:). 
 
 
+//Вы можете использовать принудительное извлечение внутри инициализатора для вызова проваливающегося инициализатора из суперкласса, в качестве части реализации непроваливающегося инициализатора подкласса. 
+//Например, подкласс класса UntitledDocument всегда имеет имя "[Untitled]", и он использует проваливающийся init(name:) из суперкласса во время инициализации.
+class UntitledDocument: Document {
+    override init() {
+        super.init(name: "[Untitled]")!
+    }
+}
+
+//В этом случае инициализатор суперкласса init(name:) каждый раз будет вызывать ошибку исполнения, если в него будет передана пустая строка. 
+//Однако, так как этот инициализатор теперь имеет строковую константу, то этот инициализатор больше не провалится, то есть ошибки исполнения больше не будет.
 
 
+//Инициализатор init!
+
+//Обычно вы определяете проваливающийся инициализатор, который создает опциональный экземпляр соответствующего типа путем размещения знака вопроса после ключевого слова init (init?). 
+//Альтернативно, вы можете определить проваливающийся инициализатор, который создает экземпляр неявно извлекаемого опционала соответствующего типа. 
+//Сделать это можно, если вместо вопросительного знака поставить восклицательный знак после ключевого слова init (init!).
 
 
+//Вы можете делегировать от init? в init! и наоборот, а так же вы можете переопределить init? с помощью init! и наоборот. 
+//Вы так же можете делегировать от init в init!, хотя, делая таким образом, мы заставим сработать утверждение, если init! провалит инициализацию.
 
 
+//ребуемые инициализаторы
+
+class SomeClass {
+    required init() {
+      //пишем тут реализацию инициализатора
+    }
+}
+
+//Вы также должны писать модификатор required перед каждой реализацией требуемого инициализатора класса для индикации того, что последующий подкласс так же должен унаследовать этот инициализатор по цепочке. 
+//Вы не пишите override, когда переопределяете требуемый инициализатор:
+
+
+class SomeSubclass: SomeClass {
+    required init() {
+      //пишем тут реализацию инициализатора подкласса
+    }
+}
+
+
+//Начальное значение свойства в виде функции или замыкания
+
+class SomeClass {
+    let someProperty: SomeType = {
+      // создаем начальное значения для SomeProperty внутри этого замыкания
+      // someValue должен быть того же типа, что и SomeType
+      return someValue
+    }()
+} 
+
+//Обратите внимание, что после закрывающей фигурной скобки замыкания идут пустая пара круглых скобок. 
+//Это означает, что нужно исполнить это замыкание немедленно. 
+//Если вы пропустите эти скобки, то вы присваиваете само значение замыкания свойству, а не возвращаете значения замыкания.
+
+
+struct Chessboard {
+    let boardColors: [Bool] = {
+        var temporaryBoard = [Bool]()
+        var isBlack = false
+        for i in 1...8 {
+            for j in 1...8 {
+                temporaryBoard.append(isBlack)
+                isBlack = !isBlack
+            }
+            isBlack = !isBlack
+        }
+        return temporaryBoard
+    }()
+    func squareIsBlackAt(row: Int, column: Int) -> Bool {
+        return boardColors[(row * 8) + column]
+    }
+}
+
+let board = Chessboard()
+print(board.squareIsBlackAt(row: 0, column: 1))
+// Выведет "true"
+print(board.squareIsBlackAt(row: 7, column: 7))
+// Выведет "false"
 
 
 
