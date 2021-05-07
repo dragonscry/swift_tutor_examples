@@ -77,3 +77,41 @@ print("Here's a random number: \(generator.random())")
 print("And another one: \(generator.random())")
 // Выведет "Другое случайное число: 0.729023776863283"
 
+
+//Если вы поставили ключевое слово mutating перед методом требуемым протоколом экземпляра, то вам не нужно писать слово mutating при реализации этого метода для класса. 
+//Слово mutating используется только структурами или перечислениями.
+
+protocol Togglable {
+    mutating func toggle()
+}
+
+
+enum OnOffSwitch: Togglable {
+    case off, on
+    mutating func toggle() {
+        switch self {
+        case .off:
+            self = .on
+        case .on:
+            self = .off
+        }
+    }
+}
+var lightSwitch = OnOffSwitch.off
+lightSwitch.toggle()
+// lightSwitch теперь равен .on
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
