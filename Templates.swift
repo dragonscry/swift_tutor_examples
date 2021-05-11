@@ -112,6 +112,51 @@ func someFunction<T: SomeClass, U: SomeProtocol>(someT: T, someU: U) {
 //Выше описанная гипотетическая функция имеет два параметра типа. Первый параметр типа - T, имеет ограничение типа, которое требует чтобы T, было подклассом класса SomeClass. 
 //Второй параметр типа - U, имеет ограничение типа, которое требует чтобы U соответствовал протоколу SomeProtocol.
 
+//Ограничение типа в действии
+
+func findIndex(ofString valueToFind: String, in array: [String]) -> Int? {
+    for (index, value) in array.enumerated() {
+        if value == valueToFind {
+            return index
+        }
+    }
+    return nil
+}
+
+let strings = ["cat", "dog", "llama", "parakeet", "terrapin"]
+if let foundIndex = findIndex(ofString: "llama", in: strings) {
+    print("The index of llama is \(foundIndex)")
+}
+// Выведет "The index of llama is 2"
+
+//универсальная функция 
+
+func findIndex<T>(of valueToFind: T, in array:[T]) -> Int? {
+    for (index, value) in array.enumerated() {
+        if value == valueToFind {
+            return index
+        }
+    }
+    return nil
+}
+
+//функция не будет компилироваться
+
+//А вот теперь будет 
+func findIndex<T: Equatable>(of valueToFind: T, in array:[T]) -> Int? {
+    for (index, value) in array.enumerated() {
+        if value == valueToFind {
+            return index
+        }
+    }
+    return nil
+}
+
+let doubleIndex = findIndex(of: 9.3, in: [3.14159, 0.1, 0.25])
+// doubleIndex опциональный Int не имеющий значения, потому что значения 9.3 нет в массиве
+let stringIndex = findIndex(of: "Andrea", in: ["Mike", "Malcolm", "Andrea"])
+// stringIndex опциональный Int равный 2
+
 
 
 
