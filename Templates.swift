@@ -157,24 +157,278 @@ let doubleIndex = findIndex(of: 9.3, in: [3.14159, 0.1, 0.25])
 let stringIndex = findIndex(of: "Andrea", in: ["Mike", "Malcolm", "Andrea"])
 // stringIndex опциональный Int равный 2
 
+//Связанные типы
+
+protocol Container {
+    associatedtype Item
+    mutating func append(_ item: Item)
+    var count: Int { get }
+    subscript(i: Int) -> Item { get }
+}
+
+//Протокол Container определяет три требуемых возможности, которые должен иметь любой контейнер:
+//Должна быть возможность добавлять новый элемент в контейнер при помощи метода append(_:).
+//Должна быть возможность получить доступ к количеству элементов в контейнере через свойство count, которое возвращает значение типа Int.
+//Должна быть возможность получить значение через индекс элемента, который принимает значение типа Int.
+
+
+//структура для Int
+struct IntStack: Container {
+    // исходная реализация IntStack
+    var items = [Int]()
+    mutating func push(_ item: Int) {
+        items.append(item)
+    }
+    mutating func pop() -> Int {
+        return items.removeLast()
+    }
+    // удовлетворение требований протокола Container
+    typealias Item = Int
+    mutating func append(_ item: Int) {
+        self.push(item)
+    }
+    var count: Int {
+        return items.count
+    }
+    subscript(i: Int) -> Int {
+        return items[i]
+    }
+}
+
+
+//универсальная структура
+
+struct Stack<Element>: Container {
+    // исходная реализация Stack<Element>
+    var items = [Element]()
+    mutating func push(_ item: Element) {
+        items.append(item)
+    }
+    mutating func pop() -> Element {
+        return items.removeLast()
+    }
+    // удовлетворение требований протокола Container
+    mutating func append(_ item: Element) {
+        self.push(item)
+    }
+    var count: Int {
+        return items.count
+    }
+    subscript(i: Int) -> Element {
+        return items[i]
+    }
+}
+
+//Вы можете добавить ограничение к связанному типу в протоколе, чтобы требовать, чтобы соответствующие типы удовлетворяли этим ограничениям.
+
+protocol Container {
+    associatedtype Item: Equatable
+    mutating func append(_ item: Item)
+    var count: Int { get }
+    subscript(i: Int) -> Item { get }
+}
+
+//Протокол может выступать как часть собственных требований. Например, ниже в примере, есть протокол, который уточняет протокол Container, 
+//добавляя метод suffix(_:). Метод suffix(_:) возвращает заданное количество элементов из конца контейнера, сохраняя их в экземпляре типа Suffix.
+
+protocol SuffixableContainer: Container {
+    associatedtype Suffix: SuffixableContainer where Suffix.Item == Item
+    func suffix(_ size: Int) -> Suffix
+}
+
+//Ниже расширение типа Stack, которое добавляет соответствие протоколу SuffixableContainer:
+
+extension Stack: SuffixableContainer {
+    func suffix(_ size: Int) -> Stack {
+        var result = Stack()
+        for index in (count-size)..<count {
+            result.append(self[index])
+        }
+        return result
+    }
+    // Определено, что Suffix является Stack.
+}
+var stackOfInts = Stack()
+stackOfInts.append(10)
+stackOfInts.append(20)
+stackOfInts.append(30)
+let suffix = stackOfInts.suffix(2)
+// suffix содержит 20 и 30
+
+
+//Оговорка where
+
+//Контейнеры не должны быть одного типа для того чтобы их проверить, хотя они и могут, но они должны содержать элементы одного и того же типа. 
+//Это требование выражается через комбинацию ограничений типа и оговоркой where:
+
+func allItemsMatch<C1: Container, C2: Container>
+    (_ someContainer: C1, _ anotherContainer: C2) -> Bool
+    where C1.Item == C2.Item, C1.Item: Equatable {
+        
+        // Проверяем одинаковое ли количество элементов находится в контейнерах.
+        if someContainer.count != anotherContainer.count {
+            return false
+        }
+        
+        // Проверяем все ли значения попарно равны.
+        for i in 0..<someContainer.count {
+            if someContainer[i] != anotherContainer[i] {
+                return false
+            }
+        }
+        
+        // Все элементы совпадают, так что возвращаем true.
+        return true
+}
+
+//Вот как выглядит функция allItemsMatch(_:_:) в действии:
+var stackOfStrings = Stack<String>()
+stackOfStrings.push("uno")
+stackOfStrings.push("dos")
+stackOfStrings.push("tres")
+ 
+var arrayOfStrings = ["uno", "dos", "tres"]
+ 
+if allItemsMatch(stackOfStrings, arrayOfStrings) {
+    print("All items match.")
+} else {
+    print("Not all items match.")
+}
+// Выведет "All items match."
 
 
 
+//Расширения с оговоркой where
+
+extension Stack where Element: Equatable {
+    func isTop(_ item: Element) -> Bool {
+        guard let topItem = items.last else {
+            return false
+        }
+        return topItem == item
+    }
+}
+
+//Новый метод isTop(_:) сначала проверяет, что наш стек не пустой, а затем сравнивает верхний элемент стека с данным нам item. 
+//Если вы попытаетесь сделать то же самое без универсальной where, то у вас будут проблемы. 
+
+
+//Вот как будет выглядеть наш метод isTop(_:) в действии:
+if stackOfStrings.isTop("tres") {
+    print("Top element is tres.")
+} else {
+    print("Top element is something else.")
+}
+// Выведет "Top element is tres."
+
+//Если вы попытаетесь вызвать метод isTop(_:) в стеке, то те, элементы, которые не реализуют протокол Equatable вызовут ошибку компиляции:
+struct NotEquatable { }
+var notEquatableStack = Stack<NotEquatable>()
+let notEquatableValue = NotEquatable()
+notEquatableStack.push(notEquatableValue)
+notEquatableStack.isTop(notEquatableValue)  // Error
+
+//Вы можете использовать универсальную where с расширениями протоколов. Пример ниже расширяет протокол Container из прошлого примера, добавляя ему новый метод startsWith(_:).
+
+extension Container where Item: Equatable {
+    func startsWith(_ item: Item) -> Bool {
+        return count >= 1 && self[0] == item
+    }
+}
+
+if [9, 9, 9].startsWith(42) {
+    print("Starts with 42.")
+} else {
+    print("Starts with something else.")
+}
+// Выведет "Starts with something else."
+
+//Универсальная оговорка where в примере выше требует, чтобы Item соответствовал протоколу Container, 
+//но вы так же можете использовать where для указания конкретного типа для Item. Например:
+
+extension Container where Item == Double {
+    func average() -> Double {
+        var sum = 0.0
+        for index in 0..<count {
+            sum += self[index]
+        }
+        return sum / Double(count)
+    }
+}
+print([1260.0, 1200.0, 98.6, 37.0].average())
+// Выведет "648.9"
 
 
 
+//Контекстуальная оговорка Where
 
+extension Container {
+    func average() -> Double where Item == Int {
+        var sum = 0.0
+        for index in 0..<count {
+            sum += Double(self[index])
+        }
+        return sum / Double(count)
+    }
+    func endsWith(_ item: Item) -> Bool where Item: Equatable {
+        return count >= 1 && self[count-1] == item
+    }
+}
+let numbers = [1260, 1200, 98, 37]
+print(numbers.average())
+// Выведет "648.75"
+print(numbers.endsWith(37))
+// Выведет "true"
+print(numbers.endsWith(37))
+// Выведет "true"
 
+//В этом примере мы добавляем методы average() в структуру Container, когда элементы имеют целочисленный тип, 
+//а так же мы добавляем метод endsWith(_:), если элементы соответствуют протоколу Equatable. 
 
+//Если вы хотите написать этот код без контекстуальной оговорки where, 
+//вам нужно написать два расширения, по одному для каждой оговорки where. 
 
+extension Container where Item == Int {
+    func average() -> Double {
+        var sum = 0.0
+        for index in 0..< count {
+            sum += Double(self[index])
+        }
+        return sum / Double(count)
+    }
+}
+extension Container where Item: Equatable {
+    func endsWith(_ item: Item) -> Bool {
+        return count >= 1 && self[count-1] == item
+    }
+}
 
+//Связанные типы с универсальной оговоркой where
 
+protocol Container {
+    associatedtype Item
+    mutating func append(_ item: Item)
+    var count: Int { get }
+    subscript(i: Int) -> Item { get }
+    
+    associatedtype Iterator: IteratorProtocol where Iterator.Element == Item
+    func makeIterator() -> Iterator
+}
 
+protocol ComparableContainer: Container where Item: Comparable { }
 
+//Универсальные сабскрипты
 
-
-
-
+extension Container {
+    subscript<Indices: Sequence>(indices: Indices) -> [Item]
+        where Indices.Iterator.Element == Int {
+            var result = [Item]()
+            for index in indices {
+                result.append(self[index])
+            }
+            return result
+    }
+}
 
 
 
