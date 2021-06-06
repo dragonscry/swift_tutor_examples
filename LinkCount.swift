@@ -113,6 +113,234 @@ unit4A = nil
 //Там, где используются сборщики "мусора", слабые указатели иногда используются для реализации простого механизма кеширования, 
 //потому что объекты без сильных связей сразу отпускаются, как только у памяти появляется необходимость избавится от "мусора". Однако со включенной ARC значения удаляются только тогда, когда уходит последняя сильная связь на них, делая слабые связи не подходящими для текущей задачи.
 
+//Бесхозные ссылки
+
+class Customer {
+    let name: String
+    var card: CreditCard?
+    init(name: String) {
+        self.name = name
+    }
+    deinit { print("\(name) деинициализируется") }
+}
+ 
+class CreditCard {
+    let number: UInt64
+    unowned let customer: Customer
+    init(number: UInt64, customer: Customer) {
+        self.number = number
+        self.customer = customer
+    }
+    deinit { print("Карта #\(number) деинициализируется") }
+}
+
+//Свойство number класса CreditCard определено как значение типа UInt64, а не Int, для того, чтобы оно было достаточно большим, чтобы хранить числа с 16 цифрами и на 32, и на 64 разрядных системах.
+
+var john: Customer?
+
+john = Customer(name: "John Appleseed")
+john!.card = CreditCard(number: 1234567890123456, customer: john!)
+
+john = nil
+// Выведет "John Appleseed деинициализируется"
+// Выведет "Карта #1234567890123456 деинициализируется"
+
+//Бесхозные опциональные ссылки
+
+class Department {
+    var name: String
+    var courses: [Course]
+    init(name: String) {
+        self.name = name
+        self.courses = []
+    }
+}
+
+class Course {
+    var name: String
+    unowned var department: Department
+    unowned var nextCourse: Course?
+    init(name: String, in department: Department) {
+        self.name = name
+        self.department = department
+        self.nextCourse = nil
+    }
+}
+
+let department = Department(name: "Horticulture")
+
+let intro = Course(name: "Survey of Plants", in: department)
+let intermediate = Course(name: "Growing Common Herbs", in: department)
+let advanced = Course(name: "Caring for Tropical Plants", in: department)
+
+intro.nextCourse = intermediate
+intermediate.nextCourse = advanced
+department.courses = [intro, intermediate, advanced]
+
+//Бесхозные ссылки и неявно извлеченные опциональные свойства
+
+class Country {
+    let name: String
+    var capitalCity: City!
+    init(name: String, capitalName: String) {
+        self.name = name
+        self.capitalCity = City(name: capitalName, country: self)
+    }
+}
+ 
+class City {
+    let name: String
+    unowned let country: Country
+    init(name: String, country: Country) {
+        self.name = name
+        self.country = country
+    }
+}
+
+var country = Country(name: "Россия", capitalName: "Москва")
+print("Столицей страны \(country.name) является \(country.capitalCity.name)")
+// Выведет "Столицей страны Россия является Москва"
+
+//Циклы сильных ссылок в замыканиях
+
+class HTMLElement {
+ 
+    let name: String
+    let text: String?
+ 
+    lazy var asHTML: () -> String = {
+        if let text = self.text {
+            return "<\(self.name)>\(text)</\(self.name)>"
+        } else {
+            return "<\(self.name) />"
+        }
+    }
+ 
+    init(name: String, text: String? = nil) {
+        self.name = name
+        self.text = text
+    }
+ 
+    deinit {
+        print("\(name) деинициализируется")
+    }
+}
+
+let heading = HTMLElement(name: "h1")
+let defaultText = "some default text"
+heading.asHTML = {
+   return "<\(heading.name)>\(heading.text ?? defaultText)</\(heading.name)>"
+}
+print(heading.asHTML())
+// Выведет "<h1>some default text</h1>"
+
+var paragraph: HTMLElement? = HTMLElement(name: "p", text: "hello, world")
+print(paragraph!.asHTML())
+// Выведет "<p>hello, world</p>"
+
+
+//Даже несмотря на то, что замыкание ссылается на self несколько раз, оно захватывает лишь одну сильную ссылку на экземпляр HTMLElement.
+
+paragraph = nil
+
+//Определение списка захвата
+
+lazy var someClosure: (Int, String) -> String = {
+      [unowned self, weak delegate = self.delegate!] (index: Int, stringToProcess: String) -> String in
+   // тело замыкания
+}
+
+lazy var someClosure: () -> String = {
+      [unowned self, weak delegate = self.delegate!] in
+    // тело замыкания
+}
+
+//Слабые (weak) или бесхозные (unowned) ссылки
+
+//Если захваченная ссылка никогда не будет nil, то она должна быть всегда захвачена как unowned ссылка, а не weak ссылка.
+
+class HTMLElement {
+    
+    let name: String
+    let text: String?
+    
+    lazy var asHTML: () -> String = {
+        [unowned self] in
+        if let text = self.text {
+            return "<\(self.name)>\(text)</\(self.name)>"
+        } else {
+            return "<\(self.name) />"
+        }
+    }
+    
+    init(name: String, text: String? = nil) {
+        self.name = name
+        self.text = text
+    }
+    
+    deinit {
+        print("\(name) освобождается")
+    }
+}
+
+var paragraph: HTMLElement? = HTMLElement(name: "p", text: "hello, world")
+print(paragraph!.asHTML())
+// Выведет "<p>hello, world</p>"
+
+paragraph = nil
+// Выведет "p освобождается"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
